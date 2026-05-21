@@ -186,6 +186,7 @@ function doLogin(e) {
     state.token = data.token;
     state.userId = data.user_id;
     state.username = data.username;
+    saveSession();
     document.getElementById('user-info').textContent = data.username;
     document.getElementById('auth-page').style.display = 'none';
     document.getElementById('app').className = 'active';
@@ -208,7 +209,31 @@ function doRegister(e) {
   return false;
 }
 
+function saveSession() {
+  localStorage.setItem('session', JSON.stringify({
+    token: state.token, userId: state.userId, username: state.username
+  }));
+}
+
+function clearSession() {
+  localStorage.removeItem('session');
+}
+
+function loadSession() {
+  const raw = localStorage.getItem('session');
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    if (!s.token) return false;
+    state.token = s.token;
+    state.userId = s.userId;
+    state.username = s.username;
+    return true;
+  } catch { return false; }
+}
+
 function doLogout() {
+  clearSession();
   state.token = '';
   state.userId = 0;
   state.username = '';
@@ -376,6 +401,14 @@ document.getElementById('note-title').addEventListener('input', function() {
     updateSaveStatus('未保存');
   }
 });
+
+// 页面加载时自动恢复登录状态
+if (loadSession()) {
+  document.getElementById('user-info').textContent = state.username;
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('app').className = 'active';
+  loadNotes();
+}
 </script>
 </body>
 </html>
