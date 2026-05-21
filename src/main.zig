@@ -1,71 +1,40 @@
 const std = @import("std");
-const Io = std.Io;
-
-const b = @import("b");
+const context = @import("effect/context.zig");
+const server = @import("web/server.zig");
+const router = @import("web/router.zig");
+const stdio_log = @import("handler/stdio_log.zig");
+const note_handler = @import("web/handler/note.zig");
+const user_handler = @import("web/handler/user.zig");
+const auth_handler = @import("web/handler/auth.zig");
 
 pub fn main(init: std.process.Init) !void {
-    // Prints to stderr, unbuffered, ignoring potential errors.
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-
-    // This is appropriate for anything that lives as long as the process.
-    const arena: std.mem.Allocator = init.arena.allocator();
-
-    // Accessing command line arguments:
-    const args = try init.minimal.args.toSlice(arena);
-    for (args) |arg| {
-        std.log.info("arg: {s}", .{arg});
-    }
-
-    // In order to do I/O operations need an `Io` instance.
+    const allocator = init.arena.allocator();
     const io = init.io;
+    const log = stdio_log.handler();
+    log.info("starting notes server");
 
-    // Stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    var stdout_buffer: [1024]u8 = undefined;
-    var stdout_file_writer: Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
-    const stdout_writer = &stdout_file_writer.interface;
+    var mem_storage = @import("handler/test_doubles.zig").MemStorage.init(allocator);
+    var mem_auth = @import("handler/test_doubles.zig").MemAuth.init(allocator);
 
-    try b.printAnotherMessage(stdout_writer);
-
-    try stdout_writer.flush(); // Don't forget to flush!
-}
-
-test "simple test" {
-    const gpa = std.testing.allocator;
-    var list: std.ArrayList(i32) = .empty;
-    defer list.deinit(gpa); // Try commenting this out and see if zig detects the memory leak!
-    try list.append(gpa, 42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
-
-test "fuzz example" {
-    try std.testing.fuzz({}, testOne, .{});
-}
-
-fn testOne(context: void, smith: *std.testing.Smith) !void {
-    _ = context;
-    // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
-
-    const gpa = std.testing.allocator;
-    var list: std.ArrayList(u8) = .empty;
-    defer list.deinit(gpa);
-    while (!smith.eos()) switch (smith.value(enum { add_data, dup_data })) {
-        .add_data => {
-            const slice = try list.addManyAsSlice(gpa, smith.value(u4));
-            smith.bytes(slice);
-        },
-        .dup_data => {
-            if (list.items.len == 0) continue;
-            if (list.items.len > std.math.maxInt(u32)) return error.SkipZigTest;
-            const len = smith.valueRangeAtMost(u32, 1, @min(32, list.items.len));
-            const off = smith.valueRangeAtMost(u32, 0, @intCast(list.items.len - len));
-            try list.appendSlice(gpa, list.items[off..][0..len]);
-            try std.testing.expectEqualSlices(
-                u8,
-                list.items[off..][0..len],
-                list.items[list.items.len - len ..],
-            );
-        },
+    const ctx = context.Context{
+        .allocator = allocator,
+        .storage = mem_storage.handler(),
+        .auth = mem_auth.handler(),
+        .render = @import("handler/test_doubles.zig").MemRender.handler(),
+        .log = log,
     };
+    const ctx_ptr: *const context.Context = &ctx;
+
+    var rtr = router.Router.init();
+    rtr.post(allocator, "/api/auth/login", auth_handler.login) catch {};
+    rtr.post(allocator, "/api/auth/register", user_handler.register) catch {};
+    rtr.get(allocator, "/api/notes", note_handler.list) catch {};
+    rtr.post(allocator, "/api/notes", note_handler.create) catch {};
+    rtr.get(allocator, "/api/notes/:id", note_handler.get) catch {};
+    rtr.put(allocator, "/api/notes/:id", note_handler.update) catch {};
+    rtr.delete(allocator, "/api/notes/:id", note_handler.delete) catch {};
+    rtr.get(allocator, "/api/users/:id", user_handler.get) catch {};
+
+    var srv = server.Server.init(allocator, ctx_ptr, io, rtr);
+    try srv.listen(8080);
 }
