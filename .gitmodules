@@ -1,0 +1,15 @@
+[submodule "lib/monocypher"]
+	path = lib/monocypher
+	url = https://github.com/LoupVaillant/Monocypher.git
+[submodule "lib/libsodium"]
+	path = lib/libsodium
+	url = https://github.com/jedisct1/libsodium.git
+[submodule "lib/libmicrohttpd"]
+	path = lib/libmicrohttpd
+	url = https://git.gnunet.org/libmicrohttpd.git
+[submodule "lib/sqlite"]
+	path = lib/sqlite
+	url = git@github.com:sqlite/sqlite.git
+[submodule "lib/cmark"]
+	path = lib/cmark
+	url = git@github.com:commonmark/cmark.git
