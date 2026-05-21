@@ -38,7 +38,7 @@ pub fn registerUser(ctx: *const Context, username: []const u8, password: []const
     try ctx.storage.putUser(ctx.allocator, u);
 
     ctx.log.info("user registered");
-    return .{ .user_id = user_id, .username = username };
+    return .{ .user_id = user_id, .username = u.username };
 }
 
 pub fn getUser(ctx: *const Context, user_id: u64) !?user.User {

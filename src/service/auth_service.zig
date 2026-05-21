@@ -13,17 +13,22 @@ pub fn login(ctx: *const Context, username: []const u8, password: []const u8) !L
     ctx.log.info("user login");
 
     const u = (try ctx.storage.getUserByUsername(ctx.allocator, username)) orelse return error.InvalidCredentials;
+    const u_username = try ctx.allocator.dupe(u8, u.username);
+    const u_hash = u.password_hash;
     defer {
         ctx.allocator.free(u.username);
-        ctx.allocator.free(u.password_hash);
+        ctx.allocator.free(u_hash);
     }
 
-    const valid = try ctx.auth.verifyPassword(password, u.password_hash);
-    if (!valid) return error.InvalidCredentials;
+    const valid = try ctx.auth.verifyPassword(password, u_hash);
+    if (!valid) {
+        ctx.allocator.free(u_username);
+        return error.InvalidCredentials;
+    }
 
     const claims = auth.TokenClaims{
         .user_id = u.id,
-        .username = u.username,
+        .username = u_username,
         .role = u.role,
         .exp = time.now() + 86400,
     };
@@ -31,7 +36,7 @@ pub fn login(ctx: *const Context, username: []const u8, password: []const u8) !L
     const token = try ctx.auth.signToken(ctx.allocator, claims);
     ctx.log.info("login successful");
 
-    return .{ .token = token, .user_id = u.id, .username = u.username };
+    return .{ .token = token, .user_id = u.id, .username = u_username };
 }
 
 pub fn authenticate(ctx: *const Context, token: []const u8) !auth.TokenClaims {

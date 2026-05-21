@@ -22,7 +22,6 @@ pub fn login(ctx: *const Context, req: *const router.Request, allocator: std.mem
     };
 
     var obj = std.StringHashMap(json.Value).init(allocator);
-    defer obj.deinit();
     try obj.put("token", .{ .string = result.token });
     try obj.put("user_id", .{ .int = @intCast(result.user_id) });
     try obj.put("username", .{ .string = result.username });

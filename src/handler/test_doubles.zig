@@ -40,6 +40,7 @@ pub const MemStorage = struct {
     snapshots: std.AutoArrayHashMapUnmanaged(u64, note.NoteState),
     users: std.AutoArrayHashMapUnmanaged(u64, user.User),
     users_by_name: std.StringArrayHashMapUnmanaged(u64),
+    note_owners: std.AutoArrayHashMapUnmanaged(u64, u64),
     arena: std.heap.ArenaAllocator,
 
     pub fn init(allocator: std.mem.Allocator) MemStorage {
@@ -49,6 +50,7 @@ pub const MemStorage = struct {
             .snapshots = .{},
             .users = .{},
             .users_by_name = .{},
+            .note_owners = .{},
             .arena = std.heap.ArenaAllocator.init(allocator),
         };
     }
@@ -86,6 +88,9 @@ pub const MemStorage = struct {
                         const entry = try self2.events_by_note.getOrPut(a, evt.note_id);
                         if (!entry.found_existing) {
                             entry.value_ptr.* = .{ .items = &.{}, .capacity = 0 };
+                            if (!self2.note_owners.contains(evt.note_id)) {
+                                try self2.note_owners.put(a, evt.note_id, evt.user_id);
+                            }
                         }
                         try entry.value_ptr.append(a, seq);
                         return seq;
@@ -163,6 +168,20 @@ pub const MemStorage = struct {
                     fn f(ctx: *anyopaque) anyerror!u64 {
                         const self2 = @as(*MemStorage, @ptrCast(@alignCast(ctx)));
                         return @intCast(self2.events.items.len);
+                    }
+                }.f,
+                .getUserNoteIds = struct {
+                    fn f(ctx: *anyopaque, allocator: std.mem.Allocator, user_id: u64) anyerror![]u64 {
+                        const self2 = @as(*MemStorage, @ptrCast(@alignCast(ctx)));
+                        var result: std.ArrayList(u64) = .empty;
+                        errdefer result.deinit(allocator);
+                        var it = self2.note_owners.iterator();
+                        while (it.next()) |entry| {
+                            if (entry.value_ptr.* == user_id) {
+                                try result.append(allocator, entry.key_ptr.*);
+                            }
+                        }
+                        return result.toOwnedSlice(allocator);
                     }
                 }.f,
                 .fulltextSearch = struct {

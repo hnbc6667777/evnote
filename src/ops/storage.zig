@@ -23,6 +23,7 @@ pub const Storage = struct {
         getUserByUsername: *const fn (*anyopaque, std.mem.Allocator, []const u8) anyerror!?user.User,
         putUser: *const fn (*anyopaque, std.mem.Allocator, user.User) anyerror!void,
         getLatestSeq: *const fn (*anyopaque) anyerror!u64,
+        getUserNoteIds: *const fn (*anyopaque, std.mem.Allocator, u64) anyerror![]u64,
         fulltextSearch: *const fn (*anyopaque, std.mem.Allocator, []const u8) anyerror![]SearchResult,
     };
 
@@ -56,6 +57,10 @@ pub const Storage = struct {
 
     pub fn getLatestSeq(self: Storage) !u64 {
         return self.vtable.getLatestSeq(self.ptr);
+    }
+
+    pub fn getUserNoteIds(self: Storage, allocator: std.mem.Allocator, user_id: u64) ![]u64 {
+        return self.vtable.getUserNoteIds(self.ptr, allocator, user_id);
     }
 
     pub fn fulltextSearch(self: Storage, allocator: std.mem.Allocator, query: []const u8) ![]SearchResult {

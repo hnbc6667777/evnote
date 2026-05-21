@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔记</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; height: 100vh; display: flex; flex-direction: column; }
+.hidden { display: none !important; }
+
+/* Auth */
+#auth-page { display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.auth-box { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 380px; }
+.auth-box h1 { text-align: center; margin-bottom: 24px; color: #333; font-size: 28px; }
+.auth-box .tab { display: flex; margin-bottom: 24px; border-bottom: 2px solid #eee; }
+.auth-box .tab button { flex: 1; padding: 10px; border: none; background: none; font-size: 16px; cursor: pointer; color: #999; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.auth-box .tab button.active { color: #667eea; border-bottom-color: #667eea; }
+.auth-box input { width: 100%; padding: 12px 16px; margin-bottom: 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; outline: none; transition: border-color .2s; }
+.auth-box input:focus { border-color: #667eea; }
+.auth-box button.primary { width: 100%; padding: 12px; background: #667eea; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.auth-box button.primary:hover { background: #5a6fd6; }
+.auth-error { color: #e74c3c; text-align: center; margin-bottom: 12px; font-size: 14px; }
+
+/* App */
+#app { display: none; height: 100vh; }
+#app.active { display: flex; }
+
+/* Sidebar */
+.sidebar { width: 280px; background: #2c3e50; color: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar-header h2 { font-size: 18px; }
+.sidebar-header .user-info { font-size: 13px; color: #95a5a6; margin-top: 4px; }
+.sidebar .new-btn { margin: 16px 20px; padding: 10px; background: #3498db; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.sidebar .new-btn:hover { background: #2980b9; }
+.note-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+.note-item { padding: 12px 20px; cursor: pointer; border-left: 3px solid transparent; transition: all .15s; }
+.note-item:hover { background: rgba(255,255,255,0.08); }
+.note-item.active { background: rgba(255,255,255,0.12); border-left-color: #3498db; }
+.note-item .title { font-size: 14px; margin-bottom: 2px; }
+.note-item .meta { font-size: 11px; color: #95a5a6; }
+.sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 13px; }
+.sidebar-footer a { color: #95a5a6; cursor: pointer; text-decoration: none; }
+.sidebar-footer a:hover { color: #fff; }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; background: #fff; }
+.main-header { padding: 20px 32px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+.main-header h3 { font-size: 22px; }
+.main-header .actions { display: flex; gap: 8px; }
+.main-header .actions button { padding: 6px 16px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
+.main-header .actions button:hover { background: #f0f0f0; }
+.main-header .actions button.danger { color: #e74c3c; border-color: #e74c3c; }
+.main-header .actions button.danger:hover { background: #fde8e8; }
+
+.editor { flex: 1; display: flex; flex-direction: column; }
+.editor textarea { flex: 1; padding: 24px 32px; border: none; outline: none; font-size: 15px; line-height: 1.7; font-family: "SF Mono", "Fira Code", monospace; resize: none; }
+.editor .save-bar { padding: 12px 32px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+.editor .save-bar .status { font-size: 13px; color: #999; }
+.editor .save-bar button { padding: 8px 24px; background: #27ae60; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.editor .save-bar button:hover { background: #219a52; }
+
+/* Welcome */
+.welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bbb; }
+.welcome h3 { font-size: 24px; margin-bottom: 8px; color: #999; }
+.welcome p { font-size: 14px; }
+
+/* Versions */
+.version-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.version-modal .modal-box { background: #fff; border-radius: 12px; width: 600px; max-height: 80vh; overflow-y: auto; padding: 32px; }
+.version-modal .modal-box h3 { margin-bottom: 16px; }
+.version-modal .modal-box .close { float: right; cursor: pointer; font-size: 20px; color: #999; }
+.version-item { padding: 12px 16px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+.version-item:hover { background: #f8f9fa; }
+.version-item .vtime { font-size: 13px; color: #666; }
+.version-item .vtype { font-size: 12px; color: #3498db; }
+
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 24px; border-radius: 8px; color: #fff; font-size: 14px; z-index: 200; animation: fadeIn .3s; }
+.toast.success { background: #27ae60; }
+.toast.error { background: #e74c3c; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div id="auth-page">
+  <div class="auth-box">
+    <h1>📝 笔记</h1>
+    <div class="tab">
+      <button id="tab-login" class="active" onclick="switchAuthTab('login')">登录</button>
+      <button id="tab-register" onclick="switchAuthTab('register')">注册</button>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <form id="login-form" onsubmit="return doLogin(event)">
+      <input type="text" id="login-username" placeholder="用户名" required>
+      <input type="password" id="login-password" placeholder="密码" required>
+      <button class="primary" type="submit">登录</button>
+    </form>
+    <form id="register-form" class="hidden" onsubmit="return doRegister(event)">
+      <input type="text" id="reg-username" placeholder="用户名 (至少3字符)" required>
+      <input type="password" id="reg-password" placeholder="密码 (至少6字符)" required>
+      <button class="primary" type="submit">注册</button>
+    </form>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>📝 笔记</h2>
+      <div class="user-info" id="user-info"></div>
+    </div>
+    <button class="new-btn" onclick="newNote()">+ 新建笔记</button>
+    <div class="note-list" id="note-list"></div>
+    <div class="sidebar-footer"><a onclick="doLogout()">退出登录</a></div>
+  </div>
+  <div class="main">
+    <div class="welcome" id="welcome">
+      <h3>欢迎使用笔记</h3>
+      <p>从左侧选择一个笔记，或点击"新建笔记"开始</p>
+    </div>
+    <div class="main-content hidden" id="main-content">
+      <div class="main-header">
+        <input id="note-title" style="font-size:22px;font-weight:600;border:none;outline:none;flex:1;padding:4px 0;" placeholder="笔记标题">
+        <div class="actions">
+          <button onclick="showVersions()">历史版本</button>
+          <button class="danger" onclick="deleteNote()">删除</button>
+        </div>
+      </div>
+      <div class="editor">
+        <textarea id="note-content" placeholder="在此编写笔记内容...&#10;&#10;支持 Markdown 格式"></textarea>
+        <div class="save-bar">
+          <span class="status" id="save-status">就绪</span>
+          <button onclick="saveNote()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="version-modal" class="version-modal hidden" onclick="if(event.target===this)closeVersions()">
+  <div class="modal-box">
+    <span class="close" onclick="closeVersions()">&times;</span>
+    <h3>历史版本</h3>
+    <div id="version-list"></div>
+  </div>
+</div>
+
+<script>
+let state = { token: '', userId: 0, username: '', notes: [], currentNoteId: null, dirty: false, loadTimer: null };
+
+function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(path, opts).then(r => r.json().catch(() => ({error: r.statusText})));
+}
+
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').className = tab === 'login' ? 'active' : '';
+  document.getElementById('tab-register').className = tab === 'register' ? 'active' : '';
+  document.getElementById('login-form').className = tab === 'login' ? '' : 'hidden';
+  document.getElementById('register-form').className = tab === 'register' ? '' : 'hidden';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function setAuthError(msg) {
+  document.getElementById('auth-error').textContent = msg;
+}
+
+function doLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  api('POST', '/api/auth/login', { username, password }).then(data => {
+    if (data.error) { setAuthError(data.error); return; }
+    state.token = data.token;
+    state.userId = data.user_id;
+    state.username = data.username;
+    document.getElementById('user-info').textContent = data.username;
+    document.getElementById('auth-page').style.display = 'none';
+    document.getElementById('app').className = 'active';
+    loadNotes();
+    toast('登录成功', 'success');
+  });
+  return false;
+}
+
+function doRegister(e) {
+  e.preventDefault();
+  const username = document.getElementById('reg-username').value;
+  const password = document.getElementById('reg-password').value;
+  api('POST', '/api/auth/register', { username, password }).then(data => {
+    if (data.error) { setAuthError(data.error); return; }
+    toast('注册成功，请登录', 'success');
+    switchAuthTab('login');
+    document.getElementById('login-username').value = username;
+  });
+  return false;
+}
+
+function doLogout() {
+  state.token = '';
+  state.userId = 0;
+  state.username = '';
+  state.notes = [];
+  state.currentNoteId = null;
+  document.getElementById('auth-page').style.display = 'flex';
+  document.getElementById('app').className = '';
+  document.getElementById('note-list').innerHTML = '';
+  document.getElementById('welcome').className = 'welcome';
+  document.getElementById('main-content').className = 'main-content hidden';
+}
+
+function loadNotes() {
+  api('GET', '/api/notes').then(data => {
+    if (data.error) return;
+    const notes = data.notes || data;
+    state.notes = Array.isArray(notes) ? notes : [];
+    renderNoteList();
+  });
+}
+
+function renderNoteList() {
+  const el = document.getElementById('note-list');
+  el.innerHTML = state.notes.map(n => `
+    <div class="note-item${n.id === state.currentNoteId ? ' active' : ''}" onclick="selectNote(${n.id})">
+      <div class="title">${escapeHtml(n.title || '无标题')}</div>
+      <div class="meta">${n.updated_at ? new Date(n.updated_at * 1000).toLocaleString() : ''}</div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function selectNote(id) {
+  if (state.dirty && !confirm('有未保存的更改，确定离开？')) return;
+  state.currentNoteId = id;
+  renderNoteList();
+  api('GET', '/api/notes/' + id).then(data => {
+    if (data.error) { toast(data.error, 'error'); return; }
+    document.getElementById('welcome').className = 'welcome hidden';
+    document.getElementById('main-content').className = 'main-content';
+    document.getElementById('note-title').value = data.title || '';
+    document.getElementById('note-content').value = data.content || '';
+    state.currentVersion = data.version || 0;
+    state.dirty = false;
+    updateSaveStatus('就绪');
+  });
+}
+
+function newNote() {
+  if (state.dirty && !confirm('有未保存的更改，确定离开？')) return;
+  state.currentNoteId = null;
+  document.getElementById('welcome').className = 'welcome hidden';
+  document.getElementById('main-content').className = 'main-content';
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-content').value = '';
+  state.currentVersion = 0;
+  state.dirty = false;
+  renderNoteList();
+  updateSaveStatus('新笔记');
+  document.getElementById('note-title').focus();
+}
+
+function saveNote() {
+  const title = document.getElementById('note-title').value.trim() || '无标题';
+  const content = document.getElementById('note-content').value;
+  updateSaveStatus('保存中...');
+
+  if (state.currentNoteId === null) {
+    api('POST', '/api/notes', { title, content }).then(data => {
+      if (data.error) { toast(data.error, 'error'); updateSaveStatus('保存失败'); return; }
+      state.currentNoteId = data.note_id;
+      state.currentVersion = data.seq;
+      state.dirty = false;
+      updateSaveStatus('已保存');
+      toast('笔记已创建', 'success');
+      loadNotes();
+    });
+  } else {
+    api('PUT', '/api/notes/' + state.currentNoteId, {
+      content: content,
+      parent_seq: state.currentVersion,
+    }).then(data => {
+      if (data.error) { toast(data.error, 'error'); updateSaveStatus('保存失败'); return; }
+      state.currentVersion = data.seq;
+      state.dirty = false;
+      updateSaveStatus('已保存');
+      toast('笔记已保存', 'success');
+      loadNotes();
+    });
+  }
+}
+
+function deleteNote() {
+  if (!state.currentNoteId) return;
+  if (!confirm('确定删除此笔记？')) return;
+  api('DELETE', '/api/notes/' + state.currentNoteId).then(data => {
+    if (data.error) { toast(data.error, 'error'); return; }
+    toast('笔记已删除', 'success');
+    state.currentNoteId = null;
+    document.getElementById('welcome').className = 'welcome';
+    document.getElementById('main-content').className = 'main-content hidden';
+    loadNotes();
+  });
+}
+
+function showVersions() {
+  if (!state.currentNoteId) return;
+  api('GET', '/api/notes/' + state.currentNoteId + '/versions').then(data => {
+    if (data.error) { toast(data.error, 'error'); return; }
+    const versions = Array.isArray(data) ? data : (data.versions || []);
+    document.getElementById('version-list').innerHTML = versions.length === 0
+      ? '<p style="color:#999">暂无历史版本</p>'
+      : versions.map(v => `
+        <div class="version-item" onclick="restoreVersion(${v.seq})">
+          <div class="vtime">${new Date(v.timestamp * 1000).toLocaleString()}</div>
+          <div class="vtype">${v.event_type || '编辑'}</div>
+        </div>
+      `).join('');
+    document.getElementById('version-modal').className = 'version-modal';
+  });
+}
+
+function closeVersions() {
+  document.getElementById('version-modal').className = 'version-modal hidden';
+}
+
+function restoreVersion(seq) {
+  if (!confirm('恢复到该版本？')) return;
+  api('GET', '/api/notes/' + state.currentNoteId + '/versions/' + seq).then(data => {
+    if (data.error) { toast(data.error, 'error'); return; }
+    document.getElementById('note-content').value = data.content || '';
+    state.dirty = true;
+    updateSaveStatus('已恢复，需保存');
+    closeVersions();
+    toast('已恢复旧版本，点击保存确认', 'success');
+  });
+}
+
+function updateSaveStatus(msg) {
+  document.getElementById('save-status').textContent = msg;
+}
+
+// Auto-save detection
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    saveNote();
+  }
+});
+
+document.getElementById('note-content').addEventListener('input', function() {
+  if (state.currentNoteId !== null) {
+    state.dirty = true;
+    updateSaveStatus('未保存');
+  }
+});
+
+document.getElementById('note-title').addEventListener('input', function() {
+  if (state.currentNoteId !== null) {
+    state.dirty = true;
+    updateSaveStatus('未保存');
+  }
+});
+</script>
+</body>
+</html>

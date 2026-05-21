@@ -23,7 +23,6 @@ pub fn register(ctx: *const Context, req: *const router.Request, allocator: std.
     };
 
     var obj = std.StringHashMap(json.Value).init(allocator);
-    defer obj.deinit();
     try obj.put("user_id", .{ .int = @intCast(result.user_id) });
     try obj.put("username", .{ .string = result.username });
     return router.Response.json(allocator, 201, .{ .object = obj });
@@ -37,9 +36,8 @@ pub fn get(ctx: *const Context, req: *const router.Request, allocator: std.mem.A
     if (u) |user_val| {
         defer user_val.deinit(allocator);
         var obj = std.StringHashMap(json.Value).init(allocator);
-        defer obj.deinit();
         try obj.put("id", .{ .int = @intCast(user_val.id) });
-        try obj.put("username", .{ .string = user_val.username });
+        try obj.put("username", .{ .string = try allocator.dupe(u8, user_val.username) });
         return router.Response.json(allocator, 200, .{ .object = obj });
     }
     return router.Response.jsonError(allocator, 404, "User not found");
