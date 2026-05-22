@@ -45,6 +45,7 @@ pub fn main(init: std.process.Init) !void {
     rtr.get(allocator, "/api/notes/:id", note_handler.get) catch {};
     rtr.put(allocator, "/api/notes/:id", note_handler.update) catch {};
     rtr.delete(allocator, "/api/notes/:id", note_handler.delete) catch {};
+    rtr.get(allocator, "/api/users", user_handler.listAll) catch {};
     rtr.get(allocator, "/api/users/:id", user_handler.get) catch {};
     rtr.get(allocator, "/api/notes/:id/versions", version_handler.list) catch {};
     rtr.get(allocator, "/api/notes/:id/versions/:seq", version_handler.getAt) catch {};

@@ -568,22 +568,33 @@ function loadTaskInbox() {
       el.innerHTML = '<div style="padding:20px;color:#95a5a6;font-size:13px;text-align:center">暂无待办任务</div>';
       return;
     }
+    const assignLabels = ['自己', '用户', '角色', '任何人'];
     el.innerHTML = tasks.map(t => {
       const badge = t.due_date
         ? '<span class="task-badge due">' + Math.ceil((t.due_date - Date.now()/1000)/3600) + 'h</span>'
         : '<span class="task-badge pending">待处理</span>';
+      const assignLabel = assignLabels[t.assign_type] || '';
       return '<div class="task-item" onclick="openTask(' + t.id + ',' + t.instance_id + ')">' +
         '<div class="title">' + escapeHtml(t.name) + ' ' + badge + '</div>' +
-        '<div class="meta">#' + t.instance_id + '</div></div>';
+        '<div class="meta">#' + t.instance_id + ' | ' + assignLabel + '</div></div>';
     }).join('');
   });
 }
 
 function showNewTaskForm() {
-  document.getElementById('task-modal-title').textContent = '快速任务';
+  document.getElementById('task-modal-title').textContent = '新建任务';
+  const assignOpts = '<div style="margin-bottom:16px">' +
+    '<label style="display:block;margin-bottom:6px;font-size:14px;color:#666">指派给</label>' +
+    '<select id="new-task-assign" style="width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;background:#fff">' +
+    '<option value="0">我自己</option>' +
+    '<option value="role:1">管理员</option>' +
+    '<option value="role:0">普通用户</option>' +
+    '<option value="anyone">任何人</option>' +
+    '</select></div>';
   document.getElementById('task-form-area').innerHTML =
     '<div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-size:14px;color:#666">任务名称</label>' +
     '<input type="text" id="new-task-name" style="width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px" placeholder="输入任务名称"></div>' +
+    assignOpts +
     '<button onclick="createQuickTask()" style="width:100%;padding:10px;background:#3498db;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px">创建任务</button>';
   document.getElementById('task-modal').className = 'version-modal';
 }
@@ -591,7 +602,14 @@ function showNewTaskForm() {
 function createQuickTask() {
   const name = document.getElementById('new-task-name').value;
   if (!name) return toast('请输入任务名称', 'error');
-  api('POST', '/api/tasks', { name: name }).then(data => {
+  const assignRaw = document.getElementById('new-task-assign').value;
+  const body = { name: name };
+  if (assignRaw.startsWith('role:')) {
+    body.assign_role = parseInt(assignRaw.slice(5));
+  } else if (assignRaw !== '0') {
+    body.assign_to = parseInt(assignRaw);
+  }
+  api('POST', '/api/tasks', body).then(data => {
     if (data.error) { toast(data.error, 'error'); return; }
     toast('任务已创建', 'success');
     closeTaskModal();

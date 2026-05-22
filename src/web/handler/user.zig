@@ -28,6 +28,10 @@ pub fn register(ctx: *const Context, req: *const router.Request, allocator: std.
     return router.Response.json(allocator, 201, .{ .object = obj });
 }
 
+pub fn listAll(_: *const Context, _: *const router.Request, allocator: std.mem.Allocator) !router.Response {
+    return router.Response.jsonError(allocator, 501, "Not implemented");
+}
+
 pub fn get(ctx: *const Context, req: *const router.Request, allocator: std.mem.Allocator) !router.Response {
     const id_str = req.params.get("id") orelse return router.Response.jsonError(allocator, 400, "Missing id");
     const user_id = std.fmt.parseInt(u64, id_str, 10) catch return router.Response.jsonError(allocator, 400, "Invalid id");
