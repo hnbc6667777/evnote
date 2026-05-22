@@ -1,5 +1,6 @@
 const std = @import("std");
 const auth = @import("../ops/auth.zig");
+const user = @import("../domain/user.zig");
 const time = @import("../domain/time.zig");
 const Context = @import("../effect/context.zig").Context;
 const file_store = @import("../ops/file_store.zig");
@@ -8,6 +9,7 @@ pub const LoginResult = struct {
     token: []const u8,
     user_id: u64,
     username: []const u8,
+    role: user.Role,
 };
 
 pub fn login(ctx: *const Context, username: []const u8, password: []const u8) !LoginResult {
@@ -37,7 +39,7 @@ pub fn login(ctx: *const Context, username: []const u8, password: []const u8) !L
     const token = try ctx.auth.signToken(ctx.allocator, claims);
     ctx.log.info("login successful");
 
-    return .{ .token = token, .user_id = u.id, .username = u_username };
+    return .{ .token = token, .user_id = u.id, .username = u_username, .role = u.role };
 }
 
 pub fn authenticate(ctx: *const Context, token: []const u8) !auth.TokenClaims {

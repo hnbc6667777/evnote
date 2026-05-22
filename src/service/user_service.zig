@@ -28,12 +28,13 @@ pub fn registerUser(ctx: *const Context, username: []const u8, password: []const
     const latest_seq = try ctx.storage.getLatestSeq();
     const user_id = latest_seq + 1;
 
+    const is_first = latest_seq == 0;
     const u = user.User{
         .id = user_id,
         .username = try ctx.allocator.dupe(u8, username),
         .password_hash = hash,
         .created_at = time.now(),
-        .role = .user,
+        .role = if (is_first) .admin else .user,
     };
 
     try ctx.storage.putUser(ctx.allocator, u);

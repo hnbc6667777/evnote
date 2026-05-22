@@ -9,6 +9,7 @@ const user_handler = @import("web/handler/user.zig");
 const auth_handler = @import("web/handler/auth.zig");
 const version_handler = @import("web/handler/version.zig");
 const file_handler = @import("web/handler/file.zig");
+const admin_handler = @import("web/handler/admin.zig");
 
 pub fn main(init: std.process.Init) !void {
     const allocator = init.arena.allocator();
@@ -24,7 +25,7 @@ pub fn main(init: std.process.Init) !void {
         .allocator = allocator,
         .storage = mem_storage.handler(),
         .auth = mem_auth.handler(),
-        .render = @import("handler/test_doubles.zig").MemRender.handler(),
+        .render = @import("handler/cmark_render.zig").CmarkRender.handler(),
         .log = log,
         .file_store = mem_files.handler(),
     };
@@ -47,6 +48,9 @@ pub fn main(init: std.process.Init) !void {
     rtr.get(allocator, "/api/files", file_handler.list) catch {};
     rtr.get(allocator, "/api/files/:id", file_handler.get) catch {};
     rtr.delete(allocator, "/api/files/:id", file_handler.delete) catch {};
+    rtr.post(allocator, "/api/render", renderHandler) catch {};
+    rtr.get(allocator, "/api/admin/files", admin_handler.listAllFiles) catch {};
+    rtr.delete(allocator, "/api/admin/files/:id", admin_handler.deleteAnyFile) catch {};
 
     var srv = server.Server.init(allocator, ctx_ptr, io, rtr);
     try srv.listen(8080);
@@ -54,4 +58,12 @@ pub fn main(init: std.process.Init) !void {
 
 fn staticHandler(_: *const context.Context, _: *const router.Request, allocator: std.mem.Allocator) !router.Response {
     return static_mod.serveHtml(allocator);
+}
+
+fn renderHandler(ctx: *const context.Context, req: *const router.Request, allocator: std.mem.Allocator) !router.Response {
+    const html = try ctx.render.markdownToHtml(allocator, req.body);
+    defer allocator.free(html);
+    var headers = std.StringHashMapUnmanaged([]const u8){};
+    try headers.put(allocator, "Content-Type", "text/html; charset=utf-8");
+    return .{ .status = 200, .headers = headers, .body = try allocator.dupe(u8, html) };
 }

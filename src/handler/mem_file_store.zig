@@ -74,7 +74,7 @@ pub const MemFileStore = struct {
                         errdefer r.deinit(a);
                         var it = s.files.iterator();
                         while (it.next()) |kv| {
-                            if (kv.value_ptr.user_id == uid) {
+                            if (uid == 0 or kv.value_ptr.user_id == uid) {
                                 try r.append(a, .{
                                     .id = kv.key_ptr.*, .user_id = uid,
                                     .filename = try a.dupe(u8, kv.value_ptr.filename),

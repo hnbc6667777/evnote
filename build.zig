@@ -69,6 +69,32 @@ pub fn build(b: *std.Build) void {
         }),
     });
     exe.root_module.linkSystemLibrary("sqlite3", .{});
+    exe.root_module.addCSourceFiles(.{
+        .files = &.{
+            "lib/cmark/src/blocks.c",
+            "lib/cmark/src/buffer.c",
+            "lib/cmark/src/cmark.c",
+            "lib/cmark/src/cmark_ctype.c",
+            "lib/cmark/src/commonmark.c",
+            "lib/cmark/src/houdini_href_e.c",
+            "lib/cmark/src/houdini_html_e.c",
+            "lib/cmark/src/houdini_html_u.c",
+            "lib/cmark/src/html.c",
+            "lib/cmark/src/inlines.c",
+            "lib/cmark/src/iterator.c",
+            "lib/cmark/src/latex.c",
+            "lib/cmark/src/man.c",
+            "lib/cmark/src/node.c",
+            "lib/cmark/src/references.c",
+            "lib/cmark/src/render.c",
+            "lib/cmark/src/scanners.c",
+            "lib/cmark/src/utf8.c",
+            "lib/cmark/src/xml.c",
+        },
+        .flags = &.{"-std=c99", "-DCMARK_NO_SHORTNAMES", "-DCMARK_STATIC_DEFINE"},
+    });
+    exe.root_module.linkSystemLibrary("c", .{});
+    exe.root_module.addIncludePath(b.path("lib/cmark/src"));
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default

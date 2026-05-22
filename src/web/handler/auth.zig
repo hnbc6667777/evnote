@@ -25,5 +25,6 @@ pub fn login(ctx: *const Context, req: *const router.Request, allocator: std.mem
     try obj.put("token", .{ .string = result.token });
     try obj.put("user_id", .{ .int = @intCast(result.user_id) });
     try obj.put("username", .{ .string = result.username });
+    try obj.put("role", .{ .int = @intFromEnum(result.role) });
     return router.Response.json(allocator, 200, .{ .object = obj });
 }
