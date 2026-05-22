@@ -28,17 +28,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
 /* Sidebar */
 .sidebar { width: 280px; background: #2c3e50; color: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
-.sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar-header { padding: 16px 20px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .sidebar-header h2 { font-size: 18px; }
 .sidebar-header .user-info { font-size: 13px; color: #95a5a6; margin-top: 4px; }
-.sidebar .new-btn { margin: 16px 20px; padding: 10px; background: #3498db; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.sidebar-tabs { display:flex; margin-top:12px; }
+.sidebar-tabs button { flex:1; padding:8px; border:none; background:none; color:#95a5a6; cursor:pointer; font-size:13px; border-bottom:2px solid transparent; }
+.sidebar-tabs button.active { color:#fff; border-bottom-color:#3498db; }
+.sidebar .new-btn { margin: 12px 20px; padding: 10px; background: #3498db; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
 .sidebar .new-btn:hover { background: #2980b9; }
-.note-list { flex: 1; overflow-y: auto; padding: 8px 0; }
-.note-item { padding: 12px 20px; cursor: pointer; border-left: 3px solid transparent; transition: all .15s; }
-.note-item:hover { background: rgba(255,255,255,0.08); }
-.note-item.active { background: rgba(255,255,255,0.12); border-left-color: #3498db; }
-.note-item .title { font-size: 14px; margin-bottom: 2px; }
-.note-item .meta { font-size: 11px; color: #95a5a6; }
+.sidebar-panel { flex: 1; overflow-y: auto; padding: 0; display:none; }
+.sidebar-panel.active { display:block; }
+.note-list { padding: 8px 0; }
+.note-item, .task-item { padding: 12px 20px; cursor: pointer; border-left: 3px solid transparent; transition: all .15s; }
+.note-item:hover, .task-item:hover { background: rgba(255,255,255,0.08); }
+.note-item.active, .task-item.active { background: rgba(255,255,255,0.12); border-left-color: #3498db; }
+.note-item .title, .task-item .title { font-size: 14px; margin-bottom: 2px; }
+.note-item .meta, .task-item .meta { font-size: 11px; color: #95a5a6; }
+.task-badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:8px; margin-left:6px; color:#fff; }
+.task-badge.due { background:#e74c3c; }
+.task-badge.pending { background:#f39c12; }
+.task-badge.done { background:#27ae60; }
 .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 13px; }
 .sidebar-footer a { color: #95a5a6; cursor: pointer; text-decoration: none; }
 .sidebar-footer a:hover { color: #fff; }
@@ -116,9 +125,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     <div class="sidebar-header">
       <h2>📝 笔记</h2>
       <div class="user-info" id="user-info"></div>
+      <div class="sidebar-tabs">
+        <button id="tab-notes" class="active" onclick="switchSidebarTab('notes')">📝 笔记</button>
+        <button id="tab-tasks" onclick="switchSidebarTab('tasks')">✓ 任务</button>
+      </div>
     </div>
-    <button class="new-btn" onclick="newNote()">+ 新建笔记</button>
-    <div class="note-list" id="note-list"></div>
+    <div id="panel-notes" class="sidebar-panel active">
+      <button class="new-btn" onclick="newNote()">+ 新建笔记</button>
+      <div class="note-list" id="note-list"></div>
+    </div>
+    <div id="panel-tasks" class="sidebar-panel">
+      <button class="new-btn" onclick="showNewTaskForm()">+ 快速任务</button>
+      <div class="note-list" id="task-inbox" style="padding-top:0"></div>
+    </div>
     <div class="sidebar-footer"><a onclick="doLogout()">退出登录</a></div>
   </div>
   <div class="main">
@@ -161,6 +180,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     <span class="close" onclick="closeVersions()">&times;</span>
     <h3>历史版本</h3>
     <div id="version-list"></div>
+  </div>
+</div>
+
+<div id="task-modal" class="version-modal hidden" onclick="if(event.target===this)closeTaskModal()">
+  <div class="modal-box">
+    <span class="close" onclick="closeTaskModal()">&times;</span>
+    <h3 id="task-modal-title">新建任务</h3>
+    <div id="task-form-area"></div>
   </div>
 </div>
 
@@ -522,6 +549,79 @@ function loadFileList() {
       '<span style="color:#3498db;font-size:13px">插入</span></div>'
     ).join('');
   });
+}
+
+// === 工作流/任务 ===
+function switchSidebarTab(tab) {
+  document.getElementById('tab-notes').className = tab === 'notes' ? 'active' : '';
+  document.getElementById('tab-tasks').className = tab === 'tasks' ? 'active' : '';
+  document.getElementById('panel-notes').className = 'sidebar-panel' + (tab === 'notes' ? ' active' : '');
+  document.getElementById('panel-tasks').className = 'sidebar-panel' + (tab === 'tasks' ? ' active' : '');
+  if (tab === 'tasks') loadTaskInbox();
+}
+
+function loadTaskInbox() {
+  api('GET', '/api/tasks/inbox').then(data => {
+    const tasks = Array.isArray(data) ? data : [];
+    const el = document.getElementById('task-inbox');
+    if (tasks.length === 0) {
+      el.innerHTML = '<div style="padding:20px;color:#95a5a6;font-size:13px;text-align:center">暂无待办任务</div>';
+      return;
+    }
+    el.innerHTML = tasks.map(t => {
+      const badge = t.due_date
+        ? '<span class="task-badge due">' + Math.ceil((t.due_date - Date.now()/1000)/3600) + 'h</span>'
+        : '<span class="task-badge pending">待处理</span>';
+      return '<div class="task-item" onclick="openTask(' + t.id + ',' + t.instance_id + ')">' +
+        '<div class="title">' + escapeHtml(t.name) + ' ' + badge + '</div>' +
+        '<div class="meta">#' + t.instance_id + '</div></div>';
+    }).join('');
+  });
+}
+
+function showNewTaskForm() {
+  document.getElementById('task-modal-title').textContent = '快速任务';
+  document.getElementById('task-form-area').innerHTML =
+    '<div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-size:14px;color:#666">任务名称</label>' +
+    '<input type="text" id="new-task-name" style="width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px" placeholder="输入任务名称"></div>' +
+    '<button onclick="createQuickTask()" style="width:100%;padding:10px;background:#3498db;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px">创建任务</button>';
+  document.getElementById('task-modal').className = 'version-modal';
+}
+
+function createQuickTask() {
+  const name = document.getElementById('new-task-name').value;
+  if (!name) return toast('请输入任务名称', 'error');
+  api('POST', '/api/tasks', { name: name }).then(data => {
+    if (data.error) { toast(data.error, 'error'); return; }
+    toast('任务已创建', 'success');
+    closeTaskModal();
+    loadTaskInbox();
+  });
+}
+
+function openTask(taskId, instanceId) {
+  document.getElementById('task-modal-title').textContent = '任务详情 #' + taskId;
+  let html = '<div style="margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:8px">' +
+    '<p><strong>实例:</strong> #' + instanceId + '</p></div>' +
+    '<div style="margin-bottom:16px"><label style="display:block;margin-bottom:6px;font-size:14px;color:#666">处理结果</label>' +
+    '<textarea id="task-result" style="width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;min-height:100px" placeholder="输入处理结果..."></textarea></div>' +
+    '<button onclick="completeTask(' + taskId + ')" style="width:100%;padding:10px;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px">完成任务</button>';
+  document.getElementById('task-form-area').innerHTML = html;
+  document.getElementById('task-modal').className = 'version-modal';
+}
+
+function completeTask(taskId) {
+  const result = document.getElementById('task-result').value || '{}';
+  api('POST', '/api/tasks/' + taskId + '/complete', result).then(data => {
+    if (data && data.error) { toast(data.error, 'error'); return; }
+    toast('任务已完成', 'success');
+    closeTaskModal();
+    loadTaskInbox();
+  });
+}
+
+function closeTaskModal() {
+  document.getElementById('task-modal').className = 'version-modal hidden';
 }
 
 // Auto-save detection
