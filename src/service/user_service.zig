@@ -62,6 +62,7 @@ test "register and get user" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 
@@ -88,6 +89,7 @@ test "register duplicate username" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 
@@ -106,6 +108,7 @@ test "validation - short username" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 

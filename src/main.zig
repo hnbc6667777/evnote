@@ -10,6 +10,8 @@ const auth_handler = @import("web/handler/auth.zig");
 const version_handler = @import("web/handler/version.zig");
 const file_handler = @import("web/handler/file.zig");
 const admin_handler = @import("web/handler/admin.zig");
+const workflow_handler = @import("web/handler/workflow.zig");
+const inbox_handler = @import("web/handler/task_inbox.zig");
 
 pub fn main(init: std.process.Init) !void {
     const allocator = init.arena.allocator();
@@ -20,6 +22,7 @@ pub fn main(init: std.process.Init) !void {
     var mem_storage = @import("handler/test_doubles.zig").MemStorage.init(allocator);
     var mem_auth = @import("handler/test_doubles.zig").MemAuth.init(allocator);
     var mem_files = @import("handler/mem_file_store.zig").MemFileStore.init(allocator);
+    var mem_wf = @import("handler/test_workflow.zig").MemWorkflowStore.init(allocator);
 
     const ctx = context.Context{
         .allocator = allocator,
@@ -28,6 +31,7 @@ pub fn main(init: std.process.Init) !void {
         .render = @import("handler/cmark_render.zig").CmarkGfmRender.handler(),
         .log = log,
         .file_store = mem_files.handler(),
+        .workflow_store = mem_wf.handler(),
     };
     const ctx_ptr: *const context.Context = &ctx;
 
@@ -51,6 +55,13 @@ pub fn main(init: std.process.Init) !void {
     rtr.post(allocator, "/api/render", renderHandler) catch {};
     rtr.get(allocator, "/api/admin/files", admin_handler.listAllFiles) catch {};
     rtr.delete(allocator, "/api/admin/files/:id", admin_handler.deleteAnyFile) catch {};
+    rtr.post(allocator, "/api/workflows", workflow_handler.createDef) catch {};
+    rtr.get(allocator, "/api/workflows", workflow_handler.listDefs) catch {};
+    rtr.post(allocator, "/api/workflows/:def_id/start", workflow_handler.startInstance) catch {};
+    rtr.get(allocator, "/api/instances", workflow_handler.listInstances) catch {};
+    rtr.get(allocator, "/api/instances/:id", workflow_handler.getInstance) catch {};
+    rtr.get(allocator, "/api/tasks/inbox", inbox_handler.inbox) catch {};
+    rtr.post(allocator, "/api/tasks/:id/complete", inbox_handler.complete) catch {};
 
     var srv = server.Server.init(allocator, ctx_ptr, io, rtr);
     try srv.listen(8080);

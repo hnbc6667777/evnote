@@ -100,6 +100,7 @@ test "create and get note" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = @import("../ops/file_store.zig").FileStore.@"null"(),
     };
 
@@ -123,6 +124,7 @@ test "edit note with optimistic lock" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 
@@ -146,6 +148,7 @@ test "edit note conflict" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 

@@ -56,6 +56,7 @@ test "get version history" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 
@@ -81,6 +82,7 @@ test "get note at specific version" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 

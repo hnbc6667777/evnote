@@ -59,6 +59,7 @@ test "login and authenticate" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 
@@ -82,6 +83,7 @@ test "login with wrong password" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 
@@ -100,6 +102,7 @@ test "login with nonexistent user" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .workflow_store = @import("../ops/workflow.zig").WorkflowStore.@"null"(),
         .file_store = file_store.FileStore.@"null"(),
     };
 
