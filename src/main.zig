@@ -8,6 +8,7 @@ const note_handler = @import("web/handler/note.zig");
 const user_handler = @import("web/handler/user.zig");
 const auth_handler = @import("web/handler/auth.zig");
 const version_handler = @import("web/handler/version.zig");
+const file_handler = @import("web/handler/file.zig");
 
 pub fn main(init: std.process.Init) !void {
     const allocator = init.arena.allocator();
@@ -17,6 +18,7 @@ pub fn main(init: std.process.Init) !void {
 
     var mem_storage = @import("handler/test_doubles.zig").MemStorage.init(allocator);
     var mem_auth = @import("handler/test_doubles.zig").MemAuth.init(allocator);
+    var mem_files = @import("handler/mem_file_store.zig").MemFileStore.init(allocator);
 
     const ctx = context.Context{
         .allocator = allocator,
@@ -24,6 +26,7 @@ pub fn main(init: std.process.Init) !void {
         .auth = mem_auth.handler(),
         .render = @import("handler/test_doubles.zig").MemRender.handler(),
         .log = log,
+        .file_store = mem_files.handler(),
     };
     const ctx_ptr: *const context.Context = &ctx;
 
@@ -40,6 +43,10 @@ pub fn main(init: std.process.Init) !void {
     rtr.get(allocator, "/api/users/:id", user_handler.get) catch {};
     rtr.get(allocator, "/api/notes/:id/versions", version_handler.list) catch {};
     rtr.get(allocator, "/api/notes/:id/versions/:seq", version_handler.getAt) catch {};
+    rtr.post(allocator, "/api/files", file_handler.upload) catch {};
+    rtr.get(allocator, "/api/files", file_handler.list) catch {};
+    rtr.get(allocator, "/api/files/:id", file_handler.get) catch {};
+    rtr.delete(allocator, "/api/files/:id", file_handler.delete) catch {};
 
     var srv = server.Server.init(allocator, ctx_ptr, io, rtr);
     try srv.listen(8080);

@@ -2,6 +2,7 @@ const std = @import("std");
 const auth = @import("../ops/auth.zig");
 const time = @import("../domain/time.zig");
 const Context = @import("../effect/context.zig").Context;
+const file_store = @import("../ops/file_store.zig");
 
 pub const LoginResult = struct {
     token: []const u8,
@@ -56,6 +57,7 @@ test "login and authenticate" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     const reg = try @import("user_service.zig").registerUser(&ctx, "alice", "password123");
@@ -78,6 +80,7 @@ test "login with wrong password" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     _ = try @import("user_service.zig").registerUser(&ctx, "bob", "password123");
@@ -95,6 +98,7 @@ test "login with nonexistent user" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     try std.testing.expectError(error.InvalidCredentials, login(&ctx, "nonexistent", "pass"));

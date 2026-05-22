@@ -2,6 +2,7 @@ const std = @import("std");
 const event = @import("../domain/event.zig");
 const note = @import("../domain/note.zig");
 const Context = @import("../effect/context.zig").Context;
+const file_store = @import("../ops/file_store.zig");
 
 pub const VersionInfo = struct {
     seq: u64,
@@ -55,6 +56,7 @@ test "get version history" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     const created = try @import("note_service.zig").createNote(&ctx, 1, "Test", "v1");
@@ -79,6 +81,7 @@ test "get note at specific version" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     const created = try @import("note_service.zig").createNote(&ctx, 1, "Test", "v1");

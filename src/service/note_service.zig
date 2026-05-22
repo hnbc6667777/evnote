@@ -4,6 +4,7 @@ const note = @import("../domain/note.zig");
 const diff = @import("../domain/diff.zig");
 const time = @import("../domain/time.zig");
 const Context = @import("../effect/context.zig").Context;
+const file_store = @import("../ops/file_store.zig");
 
 pub const CreateNoteResult = struct {
     note_id: u64,
@@ -99,6 +100,7 @@ test "create and get note" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = @import("../ops/file_store.zig").FileStore.@"null"(),
     };
 
     const result = try createNote(&ctx, 1, "Test", "Hello World");
@@ -121,6 +123,7 @@ test "edit note with optimistic lock" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     const created = try createNote(&ctx, 1, "Test", "Hello");
@@ -143,6 +146,7 @@ test "edit note conflict" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     const created = try createNote(&ctx, 1, "Test", "Hello");

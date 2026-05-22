@@ -2,6 +2,7 @@ const std = @import("std");
 const user = @import("../domain/user.zig");
 const time = @import("../domain/time.zig");
 const Context = @import("../effect/context.zig").Context;
+const file_store = @import("../ops/file_store.zig");
 
 pub const RegisterResult = struct {
     user_id: u64,
@@ -60,6 +61,7 @@ test "register and get user" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     const result = try registerUser(&ctx, "alice", "password123");
@@ -85,6 +87,7 @@ test "register duplicate username" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     _ = try registerUser(&ctx, "bob", "password123");
@@ -102,6 +105,7 @@ test "validation - short username" {
         .auth = mem_auth.handler(),
         .render = @import("../handler/test_doubles.zig").MemRender.handler(),
         .log = @import("../handler/stdio_log.zig").handler(),
+        .file_store = file_store.FileStore.@"null"(),
     };
 
     try std.testing.expectError(error.ValidationError, registerUser(&ctx, "ab", "password123"));

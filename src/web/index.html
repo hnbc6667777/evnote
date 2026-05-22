@@ -131,8 +131,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
         <textarea id="note-content" placeholder="在此编写笔记内容...&#10;&#10;支持 Markdown 格式"></textarea>
         <div class="save-bar">
           <span class="status" id="save-status">就绪</span>
-          <button onclick="saveNote()">保存</button>
-        </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="cursor:pointer;padding:6px 14px;background:#f0f0f0;border-radius:6px;font-size:13px">
+              📷 插入图片
+              <input type="file" id="file-input" accept="image/*" style="display:none" onchange="uploadFile(this)">
+            </label>
+            <button onclick="showFilePicker()" style="padding:6px 14px;background:#f0f0f0;border:none;border-radius:6px;font-size:13px;cursor:pointer">📁 浏览文件</button>
+            <button onclick="saveNote()" style="padding:8px 24px;background:#27ae60;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">保存</button>
+          </div>
       </div>
     </div>
   </div>
@@ -143,6 +149,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     <span class="close" onclick="closeVersions()">&times;</span>
     <h3>历史版本</h3>
     <div id="version-list"></div>
+  </div>
+</div>
+
+<div id="file-modal" class="version-modal hidden" onclick="if(event.target===this)closeFilePicker()">
+  <div class="modal-box">
+    <span class="close" onclick="closeFilePicker()">&times;</span>
+    <h3>已上传文件</h3>
+    <div id="file-list" style="margin-bottom:16px"></div>
+    <div style="border:2px dashed #ddd;border-radius:8px;padding:24px;text-align:center">
+      <p style="color:#999;margin-bottom:12px">或上传新文件</p>
+      <input type="file" id="file-picker-input" multiple onchange="uploadFromPicker(this)">
+    </div>
   </div>
 </div>
 
@@ -378,6 +396,86 @@ function restoreVersion(seq) {
 
 function updateSaveStatus(msg) {
   document.getElementById('save-status').textContent = msg;
+}
+
+function uploadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('file', file);
+  apiUpload(form, file.name, file.type, url => {
+    insertAtCursor(url);
+    toast('图片已插入', 'success');
+  });
+  input.value = '';
+}
+
+function uploadFromPicker(input) {
+  for (const file of input.files) {
+    const form = new FormData();
+    form.append('file', file);
+    apiUpload(form, file.name, file.type, url => {
+      toast('已上传: ' + file.name, 'success');
+      loadFileList();
+    });
+  }
+  input.value = '';
+}
+
+function apiUpload(form, filename, contentType, callback) {
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/files', true);
+  xhr.setRequestHeader('x-user-id', state.userId);
+  xhr.onload = function() {
+    if (xhr.status === 201) {
+      const data = JSON.parse(xhr.responseText);
+      callback('/api/files/' + data.id);
+    } else {
+      toast('上传失败', 'error');
+    }
+  };
+  xhr.onerror = function() { toast('上传失败', 'error'); };
+  xhr.send(form);
+}
+
+function insertAtCursor(url) {
+  const ta = document.getElementById('note-content');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const before = ta.value.substring(0, start);
+  const after = ta.value.substring(end);
+  const imgMd = '![](' + url + ')';
+  ta.value = before + imgMd + after;
+  const pos = start + imgMd.length;
+  ta.selectionStart = ta.selectionEnd = pos;
+  ta.focus();
+  state.dirty = true;
+  updateSaveStatus('未保存');
+}
+
+function showFilePicker() {
+  loadFileList();
+  document.getElementById('file-modal').className = 'version-modal';
+}
+
+function closeFilePicker() {
+  document.getElementById('file-modal').className = 'version-modal hidden';
+}
+
+function loadFileList() {
+  api('GET', '/api/files').then(data => {
+    const files = Array.isArray(data) ? data : [];
+    const el = document.getElementById('file-list');
+    if (files.length === 0) {
+      el.innerHTML = '<p style="color:#999">暂无文件</p>';
+      return;
+    }
+    el.innerHTML = files.map(f =>
+      '<div class="file-item" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid #eee;border-radius:6px;margin-bottom:6px;cursor:pointer" onclick="insertAtCursor(\'/api/files/' + f.id + '\');closeFilePicker();">' +
+      '<span>' + (f.filename || '文件') + ' (' + (f.size/1024).toFixed(1) + 'KB)</span>' +
+      '<span style="color:#3498db;font-size:13px">插入</span></div>'
+    ).join('');
+  });
 }
 
 // Auto-save detection
