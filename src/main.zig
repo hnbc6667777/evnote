@@ -25,7 +25,7 @@ pub fn main(init: std.process.Init) !void {
         .allocator = allocator,
         .storage = mem_storage.handler(),
         .auth = mem_auth.handler(),
-        .render = @import("handler/cmark_render.zig").CmarkRender.handler(),
+        .render = @import("handler/cmark_render.zig").CmarkGfmRender.handler(),
         .log = log,
         .file_store = mem_files.handler(),
     };
