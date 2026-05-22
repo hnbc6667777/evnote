@@ -37,3 +37,32 @@ pub fn complete(ctx: *const Context, req: *const router.Request, allocator: std.
     const empty_obj = std.StringHashMap(json.Value).init(allocator);
     return router.Response.json(allocator, 200, .{ .object = empty_obj });
 }
+
+pub fn createQuick(ctx: *const Context, req: *const router.Request, allocator: std.mem.Allocator) !router.Response {
+    var body = json.parse(allocator, req.body) catch {
+        return router.Response.jsonError(allocator, 400, "Invalid JSON");
+    };
+    defer body.deinit(allocator);
+    const name = json.objectGetString(body, "name") orelse return router.Response.jsonError(allocator, 400, "Missing name");
+    const uid_str = req.headers.get("x-user-id") orelse "0";
+    const uid = std.fmt.parseInt(u64, uid_str, 10) catch 0;
+
+    const root = @import("../../iTask/core.zig").TaskBuilder.notify(name, "");
+    const def_id = engine.createDef(ctx.workflow_store, allocator, name, "", root, uid) catch |err| {
+        return router.Response.jsonError(allocator, 500, @errorName(err));
+    };
+    const inst_id = engine.startInstance(ctx.workflow_store, allocator, def_id, uid, null) catch |err| {
+        return router.Response.jsonError(allocator, 500, @errorName(err));
+    };
+    var obj = std.StringHashMap(json.Value).init(allocator);
+    try obj.put("instance_id", .{ .int = @intCast(inst_id) });
+    return router.Response.json(allocator, 201, .{ .object = obj });
+}
+
+pub fn getDetail(ctx: *const Context, req: *const router.Request, allocator: std.mem.Allocator) !router.Response {
+    const id_str = req.params.get("id") orelse return router.Response.jsonError(allocator, 400, "Missing id");
+    const id = std.fmt.parseInt(u64, id_str, 10) catch return router.Response.jsonError(allocator, 400, "Invalid id");
+    _ = id;
+    _ = ctx;
+    return router.Response.jsonError(allocator, 501, "Not implemented");
+}

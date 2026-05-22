@@ -60,7 +60,9 @@ pub fn main(init: std.process.Init) !void {
     rtr.post(allocator, "/api/workflows/:def_id/start", workflow_handler.startInstance) catch {};
     rtr.get(allocator, "/api/instances", workflow_handler.listInstances) catch {};
     rtr.get(allocator, "/api/instances/:id", workflow_handler.getInstance) catch {};
+    rtr.post(allocator, "/api/tasks", inbox_handler.createQuick) catch {};
     rtr.get(allocator, "/api/tasks/inbox", inbox_handler.inbox) catch {};
+    rtr.get(allocator, "/api/tasks/:id", inbox_handler.getDetail) catch {};
     rtr.post(allocator, "/api/tasks/:id/complete", inbox_handler.complete) catch {};
 
     var srv = server.Server.init(allocator, ctx_ptr, io, rtr);
